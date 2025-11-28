@@ -8,10 +8,10 @@ async function uploadProductImage(file) {
     if (!file || typeof file.size === 'undefined' || file.size === 0) {
         return null;
     }
-    
-    const originalFileName = file.name || ''; 
-    const fileExtension = originalFileName.split('.').pop(); 
-    
+
+    const originalFileName = file.name || '';
+    const fileExtension = originalFileName.split('.').pop();
+
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExtension}`;
     const filePath = `${fileName}`;
 
@@ -34,11 +34,22 @@ async function uploadProductImage(file) {
     return urlData.publicUrl;
 }
 
+const mapBooleanFields = (data) => {
+    if (data.visible !== undefined) data.visible = data.visible === 'on' || data.visible === 'true' || data.visible === true;
+
+    if (data.mostrar_precio !== undefined) data.mostrar_precio = data.mostrar_precio === 'on' || data.mostrar_precio === 'true' || data.mostrar_precio === true;
+    if (data.habilitar_whatsapp !== undefined) data.habilitar_whatsapp = data.habilitar_whatsapp === 'on' || data.habilitar_whatsapp === 'true' || data.habilitar_whatsapp === true;
+    if (data.habilitar_formulario !== undefined) data.habilitar_formulario = data.habilitar_formulario === 'on' || data.habilitar_formulario === 'true' || data.habilitar_formulario === true;
+};
+
+
 export const ProductoService = {
 
     async fetchData() {
+        const CORRECT_SELECT_QUERY = `*, c:categoria(id, nombre)`;
+
         let query = supabase.from(TABLE_NAME)
-            .select(CONFIG.select)
+            .select(CORRECT_SELECT_QUERY)
             .eq('visible', true)
             .order(CONFIG.id_key, { ascending: true });
 
@@ -66,6 +77,8 @@ export const ProductoService = {
         dataToInsert.precio = parseFloat(dataToInsert.precio);
         dataToInsert.stock = parseInt(dataToInsert.stock);
         dataToInsert.id_categoria = parseInt(dataToInsert.id_categoria);
+
+        mapBooleanFields(dataToInsert);
         dataToInsert.visible = true;
 
         const { error } = await supabase.from(TABLE_NAME).insert(dataToInsert);
@@ -73,6 +86,78 @@ export const ProductoService = {
         if (error) {
             console.error('Error en ProductoService.create:', error);
             throw new Error(`Error al crear producto: ${error.message}`);
+        }
+        return true;
+    },
+
+    async bulkCreate(productsArray) {
+        if (!Array.isArray(productsArray) || productsArray.length === 0) {
+            throw new Error('El array de productos está vacío o no es válido.');
+        }
+
+        const dataToInsert = productsArray.map(product => {
+            const processedProduct = { ...product };
+
+            if (processedProduct.precio !== undefined) processedProduct.precio = parseFloat(processedProduct.precio);
+            if (processedProduct.stock !== undefined) processedProduct.stock = parseInt(processedProduct.stock);
+            if (processedProduct.id_categoria !== undefined) processedProduct.id_categoria = parseInt(processedProduct.id_categoria);
+
+            if (processedProduct.visible === undefined) processedProduct.visible = true;
+
+            mapBooleanFields(processedProduct);
+
+            return processedProduct;
+        });
+
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .insert(dataToInsert);
+
+        if (error) {
+            console.error('Error en ProductoService.bulkCreate:', error);
+            const errorMessage = error.details || error.message;
+            throw new Error(`Error al crear productos masivamente. Revise el formato de su CSV. Detalle: ${errorMessage}`);
+        }
+        return data;
+    },
+
+    async bulkUpdateAll(fieldName, value) {
+        console.log(`[bulkUpdateAll] Actualizando ${fieldName} a ${value} para todos los productos.`);
+
+        if (!fieldName || typeof value !== 'boolean') {
+            throw new Error("Parámetros inválidos para la actualización masiva.");
+        }
+
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update({ [fieldName]: value })
+            .neq(CONFIG.id_key, 0);
+
+        if (error) {
+            console.error("Error en ProductoService.bulkUpdateAll:", error);
+            throw new Error(`Error al actualizar todos los productos masivamente. Detalle: ${error.message}`);
+        }
+        return true;
+    },
+
+    async bulkUpdateByIds(ids, fieldName, value) {
+        console.log(`[bulkUpdateByIds] Actualizando ${fieldName} a ${value} para ${ids.length} productos.`);
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new Error("El array de IDs para la actualización masiva está vacío o no es válido.");
+        }
+        if (!fieldName || typeof value !== 'boolean') {
+            throw new Error("Parámetros inválidos para la actualización masiva.");
+        }
+
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update({ [fieldName]: value })
+            .in(CONFIG.id_key, ids);
+
+        if (error) {
+            console.error("Error en ProductoService.bulkUpdateByIds:", error);
+            throw new Error(`Error al actualizar productos filtrados masivamente. Detalle: ${error.message}`);
         }
         return true;
     },
@@ -105,25 +190,57 @@ export const ProductoService = {
         return data;
     },
 
-    async update(id, formData) {
-        const file = formData.get('file_upload');
-        const currentImageUrl = formData.get('imagen_url');
-        const dataToUpdate = Object.fromEntries(formData.entries());
+    async updateField(id, data) {
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update(data)
+            .eq(CONFIG.id_key, id);
 
+        if (error) {
+            console.error('Error en ProductoService.updateField:', error);
+            throw new Error(`Error al actualizar campo: ${error.message}`);
+        }
+        return true;
+    },
+
+    async uploadAndSave(id, dataToUpdate, file, currentImageUrl = null) {
         try {
             if (file && file.size > 0) {
                 dataToUpdate.imagen_url = await uploadProductImage(file);
+            } else if (currentImageUrl) {
+                dataToUpdate.imagen_url = currentImageUrl;
             } else {
-                dataToUpdate.imagen_url = currentImageUrl || null;
+                dataToUpdate.imagen_url = null;
             }
         } catch (e) {
             throw e;
         }
 
-        delete dataToUpdate.file_upload;
-        dataToUpdate.precio = parseFloat(dataToUpdate.precio);
-        dataToUpdate.stock = parseInt(dataToUpdate.stock);
-        dataToUpdate.id_categoria = parseInt(dataToUpdate.id_categoria);
+        if (dataToUpdate.precio !== undefined) dataToUpdate.precio = parseFloat(dataToUpdate.precio);
+        if (dataToUpdate.stock !== undefined) dataToUpdate.stock = parseInt(dataToUpdate.stock);
+        if (dataToUpdate.id_categoria !== undefined) dataToUpdate.id_categoria = parseInt(dataToUpdate.id_categoria);
+
+        mapBooleanFields(dataToUpdate);
+
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update(dataToUpdate)
+            .eq(CONFIG.id_key, id);
+
+        if (error) {
+            console.error('Error en ProductoService.uploadAndSave (Supabase update):', error);
+            throw new Error(`Error al actualizar producto: ${error.message}`);
+        }
+        return true;
+    },
+
+    async update(id, dataToUpdate) {
+
+        if (dataToUpdate.precio !== undefined) dataToUpdate.precio = parseFloat(dataToUpdate.precio);
+        if (dataToUpdate.stock !== undefined) dataToUpdate.stock = parseInt(dataToUpdate.stock);
+        if (dataToUpdate.id_categoria !== undefined) dataToUpdate.id_categoria = parseInt(dataToUpdate.id_categoria);
+
+        mapBooleanFields(dataToUpdate);
 
         const { error } = await supabase
             .from(TABLE_NAME)

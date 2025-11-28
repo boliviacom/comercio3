@@ -1,8 +1,19 @@
 export const REPORT_CONFIG = {
     'producto': {
-        select: 'id, nombre, imagen_url, descripcion, precio, stock, c:categoria!id_categoria(nombre)',
+        select: 'id, nombre, imagen_url, descripcion, precio, stock, visible, mostrar_precio, habilitar_whatsapp, habilitar_formulario, c:categoria!id_categoria(nombre)',
         id_key: 'id',
-        headers: ['N°', 'Nombre de Producto', 'Imagen', 'Descripción', 'Precio Unitario', 'Stock Actual', 'Categoría']
+        headers: [
+            'N°',
+            'Nombre de Producto',
+            'Imagen',
+            'Descripción',
+            'Precio Unitario',
+            'Stock Actual',
+            'Categoría',
+            'Mostrar Precio',     // Encabezado necesario para la tabla
+            'WhatsApp',           // Encabezado necesario para la tabla
+            'Formulario Cont.'    // Encabezado necesario para la tabla
+        ]
     },
     'categoria': {
         select: 'id, nombre, visible',
@@ -108,12 +119,14 @@ export const CRUD_FIELDS_CONFIG = {
             required: true,
             options_service: 'CategoriaService'
         },
+        // ❌ CAMPOS BOOLEANOS ELIMINADOS DEL FORMULARIO CRUD
         { name: 'imagen_url', label: 'Imagen URL', type: 'hidden' },
     ],
     'categoria': [
         { name: 'nombre', label: 'Nombre de la Categoría', type: 'text', required: true, maxLength: 50 },
         { name: 'visible', label: '¿Es Visible al Público?', type: 'checkbox', required: false },
     ],
+    // ... (El resto de CRUD_FIELDS_CONFIG permanece igual)
     'usuario': [
         { name: 'id', label: 'ID (UUID)', type: 'hidden', disabled: true },
         { name: 'ci', label: 'Cédula de Identidad (CI)', type: 'text', required: true },

@@ -331,25 +331,49 @@ body {
     align-items: center;
     margin-bottom: 15px;
     padding: 10px 0;
+    gap: 10px;
 }
 
-.btn-create {
-    background-color: var(--primary-color);
-    color: white;
+.table-actions button {
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-weight: 600;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.9em;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
+.table-actions button i {
+    margin-right: 5px;
+}
+
+/* Primary Button (Crear Nuevo) */
+.btn-primary,
+.btn-create {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover,
 .btn-create:hover {
     background-color: var(--hover-color);
+    transform: translateY(-1px);
 }
 
-.btn-create i {
-    margin-right: 5px;
+/* Secondary Button (Carga Masiva) */
+.btn-secondary,
+.btn-bulk-upload {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover,
+.btn-bulk-upload:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
 }
 
 .record-count {
@@ -651,7 +675,7 @@ body {
 }
 
 .action-buttons {
-    margin-right: 20px;
+    margin-left: 20px;
     flex-shrink: 0;
 }
 
@@ -659,3 +683,133 @@ body {
     white-space: nowrap;
     flex-shrink: 0;
 }
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 45px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #aeb5b8;
+    transition: .4s;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked+.slider {
+    background-color: var(--primary-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(21px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.switch.loading .slider {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------------- */
+/* SUBMENU/TOGGLE STYLES */
+/* ---------------------------------------------------------------------- */
+
+/* Ocultar el submenú por defecto */
+.sidebar .submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+}
+
+/* Mostrar el submenú cuando no tiene la clase 'collapsed' (la clase que JS remueve) */
+.sidebar .submenu:not(.collapsed) {
+    max-height: 200px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+/* Estilo para los enlaces dentro del submenú */
+.sidebar .submenu .nav-link {
+    padding-left: 35px;
+    font-size: 0.9em;
+    opacity: 0.85;
+}
+
+/* Estilo para el enlace principal del submenú (Producto) */
+.submenu-toggle {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Estilo para el ícono de flecha (chevron) */
+.submenu-toggle .submenu-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+    width: auto !important;
+}
+
+/* ---------------------------------------------------------------------- */
+/* REGLAS CORREGIDAS PARA EL ESTADO COLAPSADO */
+/* ---------------------------------------------------------------------- */
+
+/* Ocultar el submenú completo al colapsar el sidebar (solución al problema visual) */
+.sidebar.collapsed .submenu {
+    max-height: 0 !important;
+    padding: 0 !important;
+    display: none;
+}
+
+/* Ocultar el ícono de la flecha del submenú principal */
+.sidebar.collapsed .submenu-toggle .submenu-icon {
+    display: none;
+}
+
+/* Centrar los íconos y quitar el padding para el modo colapsado */
+.sidebar.collapsed .nav-link {
+    /* Centra el ícono horizontalmente */
+    justify-content: center;
+    /* Ajusta el padding para una apariencia centrada con el ancho reducido */
+    padding: 12px 0px;
+}
+
+/* Asegurar que el ícono principal no tenga margen extra */
+.sidebar.collapsed .nav-link i {
+    margin-left: 0;
+    margin-right: 0;
+}
+
