@@ -25,18 +25,15 @@ export class AdminProductManager {
         this.currentPage = 1;
         this.itemsPerPage = 10;
         this.currentSearchTerm = '';
-        // 🔑 CORRECCIÓN 1: Nuevo atributo para almacenar el ID de categoría seleccionado
         this.currentCategoryId = '';
 
         this.loadingHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Cargando datos...</div>';
 
         this.searchTimeout = null;
 
-        // ATRIBUTOS PARA CARGA MASIVA (MEDIADOR DE CATEGORÍAS)
         this.categoryNameMap = null;
         this.categoryService = SERVICE_MAP['categoria'];
 
-        // Handler para el listener global que permite removerlo
         this.globalToggleHandler = null;
 
         this.setupModalListeners();
@@ -60,9 +57,17 @@ export class AdminProductManager {
         });
     }
 
-    /**
-     * Carga todas las categorías y crea un mapa de Nombre -> ID para la carga masiva.
-     */
+    _normalizeString(name) {
+        if (!name) return '';
+        const normalized = String(name)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+
+        return normalized.replace(/\s+/g, '').trim();
+    }
+
+
     async _getCategoryNameMap() {
         if (this.categoryNameMap) {
             return this.categoryNameMap;
@@ -78,8 +83,7 @@ export class AdminProductManager {
             const map = {};
 
             categories.forEach(cat => {
-                // Mapear nombre en minúsculas y sin espacios a su ID
-                map[String(cat.nombre).trim().toLowerCase()] = cat.id;
+                map[this._normalizeString(cat.nombre)] = cat.id;
             });
 
             this.categoryNameMap = map;
@@ -91,18 +95,15 @@ export class AdminProductManager {
         }
     }
 
-    // 🔑 CORRECCIÓN 2: Lógica de filtrado robusta
     filterData() {
         let data = this.fullData;
         const term = this.currentSearchTerm.toLowerCase().trim();
         const categoryId = this.currentCategoryId;
 
-        // 🔍 DEBUG: Mostrar los parámetros de filtrado
         console.log(`[DEBUG: Filter] Término de búsqueda: '${term}' | ID de Categoría: '${categoryId}'`);
 
         let filteredData = data;
 
-        // 1. Aplicar filtro de búsqueda por texto
         if (term) {
             filteredData = filteredData.filter(row => {
                 const nombre = String(row.nombre || '').toLowerCase();
@@ -113,35 +114,26 @@ export class AdminProductManager {
             });
         }
 
-        // 🔑 CORRECCIÓN 2.2: Aplicar filtro por categoría seleccionada (con doble verificación)
         if (categoryId && categoryId !== 'all') {
             const filterId = String(categoryId);
 
             filteredData = filteredData.filter(row => {
 
-                // 1. Clave externa directa (Confirmado por SQL Schema: id_categoria)
                 const directId = String(row.id_categoria || '');
 
-                // 2. ID anidado (Si se usa un JOIN y el ID está en el objeto de relación 'c')
                 const nestedId = String(row.c && row.c.id ? row.c.id : '');
 
-                // Si se encuentra el ID en el campo directo O en el anidado, se considera match
                 const matches = directId === filterId || nestedId === filterId;
 
                 return matches;
             });
         }
 
-        // 🔍 DEBUG: Mostrar el resultado del filtrado
         console.log(`[DEBUG: Filter] Registros filtrados: ${filteredData.length} de ${this.fullData.length} totales.`);
 
         return filteredData;
     }
 
-    /**
-     * Determina el estado inicial de un switch global. Refleja si TODOS los productos VISIBLES
-     * tienen el campo activo.
-     */
     _getGlobalSwitchInitialState(fieldName) {
         const dataToCheck = this.filterData();
 
@@ -162,8 +154,6 @@ export class AdminProductManager {
         const tableName = this.currentTable;
         const totalRecords = this.filterData().length;
         const totalPages = Math.ceil(totalRecords / this.itemsPerPage);
-
-        const dataCellCount = 7;
 
         if (recordCountSpan) {
             recordCountSpan.textContent = `Total: ${totalRecords} registros visibles (${dataSlice.length} en esta página)`;
@@ -190,9 +180,6 @@ export class AdminProductManager {
         }
     }
 
-    /**
-     * Método Helper para renderizar solo el interruptor global (sin etiquetas individuales).
-     */
     _renderGlobalSwitch(fieldName, label) {
         const isChecked = this._getGlobalSwitchInitialState(fieldName);
         const checkedAttribute = isChecked ? 'checked' : '';
@@ -210,13 +197,9 @@ export class AdminProductManager {
         `;
     }
 
-    /**
-     * Renderiza la fila que contiene los interruptores globales, alineada con las columnas.
-     */
     _renderGlobalControlsRow() {
         if (this.currentTable !== 'producto') return '';
 
-        // N° (1) + PRODUCTO (1) + PRECIO UNIT. (1) + STOCK (1) + CATEGORÍA (1) = 5 columnas antes de OPCIONES
         const labelColSpan = 5;
 
         const switchMostrarPrecio = `
@@ -238,8 +221,6 @@ export class AdminProductManager {
             </div>
         `;
 
-        // La fila se divide en: 
-        // [ Colspan 5 (N° a CATEGORÍA) ] [ Colspan 2 (OPCIONES y ACCIONES) ]
         return `
             <tr class="global-controls-row">
                 <td colspan="${labelColSpan}" class="global-controls-cell global-controls-cell-label">
@@ -261,7 +242,6 @@ export class AdminProductManager {
         const tableName = this.currentTable;
         const linkText = this.currentLinkText;
 
-        // 🔑 CORRECCIÓN 3: Renderizar el filtro de categoría
         const categoryFilterHtml = await this._renderCategoryFilter();
 
         this.displayElement.innerHTML = `
@@ -303,11 +283,9 @@ export class AdminProductManager {
             const data = await service.fetchData(config.select);
             this.fullData = data;
 
-            // 🔍 DEBUG: Muestra la estructura de un producto para verificar el campo de categoría
             if (this.fullData.length > 0) {
                 console.log("[DEBUG: Data Structure] Ejemplo de un producto:", this.fullData[0]);
 
-                // ⚠️ ADVERTENCIA CRÍTICA: La clave del filtro es 'id_categoria'
                 if (this.fullData[0].id_categoria === undefined && this.fullData[0].c?.id === undefined) {
                     console.warn(
                         "⚠️ ¡ATENCIÓN! El filtro de categoría está FALLANDO porque el campo 'id_categoria' (o el objeto de JOIN 'c.id') no se encuentra en la data del producto.",
@@ -357,9 +335,6 @@ export class AdminProductManager {
         }
     }
 
-    /**
-     * Método Helper para renderizar un switch individual con su etiqueta encima, listo para Flexbox.
-     */
     _renderBooleanSwitchWithLabel(id, fieldName, value, label) {
         const isChecked = value === true || value === 'true';
         const checkedAttribute = isChecked ? 'checked' : '';
@@ -381,9 +356,6 @@ export class AdminProductManager {
         `;
     }
 
-    /**
-     * Renderiza una fila completa de la tabla.
-     */
     renderRow(row, tableName, isCrudTable, indexOffset) {
         const config = REPORT_CONFIG[tableName];
         const rowId = row[config.id_key];
@@ -439,9 +411,6 @@ export class AdminProductManager {
         `;
     }
 
-    /**
-     * Renderiza la tabla completa con encabezados y contenido.
-     */
     renderTable(tableName, linkText, dataSlice, isCrudTable, headers, totalRecords, totalPages) {
         const recordText = 'registros visibles';
         const tableContentWrapper = this.displayElement.querySelector('#table-content-wrapper');
@@ -461,7 +430,6 @@ export class AdminProductManager {
         let headerHTML = '';
 
         if (tableName === 'producto') {
-            // Estructura de encabezado corregida (7 columnas)
             headerHTML = `
                 <tr>
                     <th>N°</th>
@@ -474,7 +442,6 @@ export class AdminProductManager {
                 </tr>
             `;
         } else {
-            // Estructura de encabezado genérica para otras tablas
             headerHTML = `
                 <tr>
                     <th>N°</th> ${headers
@@ -518,12 +485,10 @@ export class AdminProductManager {
         `;
     }
 
-    // 🔑 CORRECCIÓN 3.2: Renderiza el select de categorías
     async _renderCategoryFilter() {
         if (!this.categoryService) return '';
 
         let categoryOptions = '<option value="all">Todas las Categorías</option>';
-        // Asegurar que el ID seleccionado sea un String para la comparación
         const selectedId = String(this.currentCategoryId);
 
         try {
@@ -556,7 +521,6 @@ export class AdminProductManager {
         `;
     }
 
-    // 🔑 CORRECCIÓN 4: Listener para el select de categoría
     setupSearchAndFilterListeners() {
         const searchContainer = document.getElementById(SEARCH_FILTER_CONTAINER_ID);
         if (!searchContainer) return;
@@ -577,11 +541,9 @@ export class AdminProductManager {
             };
         }
 
-        // Listener para el cambio de categoría
         if (categorySelect) {
             categorySelect.onchange = () => {
                 this.currentCategoryId = categorySelect.value;
-                // 🔍 DEBUG: Mostrar el ID de categoría capturado por el listener
                 console.log(`[DEBUG: Listener] Categoría seleccionada, ID: ${this.currentCategoryId}`);
                 this.currentPage = 1;
                 this.renderCurrentPage();
@@ -589,9 +551,6 @@ export class AdminProductManager {
         }
     }
 
-    /**
-     * Enlaza listeners para controles globales.
-     */
     setupGlobalControlsListeners(tableName) {
         if (tableName === 'producto') {
             this.displayElement.querySelectorAll('.global-switch-toggle').forEach(input => {
@@ -606,9 +565,6 @@ export class AdminProductManager {
         }
     }
 
-    /**
-     * Habilita los listeners de CRUD.
-     */
     enableCrudListeners(tableName) {
 
         this.displayElement.querySelectorAll('.btn-edit').forEach(button => {
@@ -641,9 +597,6 @@ export class AdminProductManager {
         this.setupPaginationListeners();
     }
 
-    /**
-     * Maneja el cambio del interruptor global para actualizar el valor en los productos FILTRADOS/VISIBLES.
-     */
     async handleGlobalToggle(inputElement) {
         const service = SERVICE_MAP[this.currentTable];
         if (!service) {
@@ -701,9 +654,6 @@ export class AdminProductManager {
         }
     }
 
-    /**
-     * Enlaza listeners para los interruptores individuales de las filas.
-     */
     setupSwitchToggleListeners() {
         this.displayElement.querySelectorAll('.data-switch-toggle').forEach(switchInput => {
             switchInput.addEventListener('change', async (e) => {
@@ -717,9 +667,6 @@ export class AdminProductManager {
         });
     }
 
-    /**
-     * Lógica para actualizar un campo booleano de un solo producto.
-     */
     async updateProductFieldFromSwitch(id, fieldName, newValue, inputElement) {
         const service = SERVICE_MAP[this.currentTable];
         const originalValue = !newValue;
@@ -893,8 +840,8 @@ export class AdminProductManager {
                     <label for="bulk-file">Archivo de Carga (.csv, .xlsx):</label>
                     <input type="file" id="bulk-file" name="bulk-file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
                     <p class="info-message" style="margin-top: 10px;">
-                        ⚠️ Asegúrese de que su archivo incluye una columna llamada <strong>'nombre_categoria'</strong> 
-                        con el nombre exacto de la categoría. El sistema lo convertirá a ID.
+                        ⚠️ Asegúrese de que su archivo incluye una columna llamada <strong>'id_categoria'</strong> 
+                        con el ID numérico, o <strong>'nombre_categoria'</strong> con el nombre exacto de la categoría.
                     </p>
                 </div>
                 <div class="form-footer">
@@ -938,7 +885,7 @@ export class AdminProductManager {
             console.error('ERROR: El mapa de categorías está vacío. No se puede continuar.');
             alert('❌ No se pudo cargar el mapa de categorías. Intente de nuevo más tarde.');
             submitButton.disabled = false;
-            submitButton.innerHTML = '<i class="fas fa-file-import"></i> Procesar Archivo';
+            submitButton.innerHTML = '<i class="fas fas fa-file-import"></i> Procesar Archivo';
             return;
         }
 
@@ -990,16 +937,18 @@ export class AdminProductManager {
             for (const [index, record] of parsedData.entries()) {
                 console.log(`--- Procesando registro #${index + 1} (${record.nombre || 'Nombre no definido'}) ---`);
 
-                if (!record.nombre_categoria) {
-                    failedRecords.push({ ...record, error: 'Columna "nombre_categoria" no encontrada en la fila.' });
-                    continue;
+                let categoryId = null;
+
+                if (record.id_categoria && parseInt(record.id_categoria) > 0) {
+                    categoryId = parseInt(record.id_categoria);
+                    console.log('ID de categoría (leído directamente del CSV):', categoryId);
+
+                } else if (record.nombre_categoria) {
+                    const categoryName = this._normalizeString(record.nombre_categoria);
+                    categoryId = categoryMap[categoryName];
+                    console.log(`Nombre de categoría en CSV: "${record.nombre_categoria}" (Buscado como: "${categoryName}")`);
+                    console.log('ID de categoría resultante (mediador):', categoryId);
                 }
-
-                const categoryName = String(record.nombre_categoria).trim().toLowerCase();
-                const categoryId = categoryMap[categoryName];
-
-                console.log(`Nombre de categoría en CSV: "${record.nombre_categoria}" (Buscado como: "${categoryName}")`);
-                console.log('ID de categoría resultante (mediador):', categoryId);
 
                 if (categoryId) {
                     const productDataToSave = {
@@ -1007,9 +956,13 @@ export class AdminProductManager {
                         id_categoria: categoryId,
                         precio: parseFloat(record.precio) || 0,
                         stock: parseInt(record.stock) || 0,
-                        visible: true,
+                        visible: record.visible !== undefined ? record.visible : true,
+                        mostrar_precio: record.mostrar_precio !== undefined ? record.mostrar_precio : true,
+                        habilitar_whatsapp: record.habilitar_whatsapp !== undefined ? record.habilitar_whatsapp : false,
+                        habilitar_formulario: record.habilitar_formulario !== undefined ? record.habilitar_formulario : false,
                         imagen_url: record.imagen_url || ''
                     };
+
                     delete productDataToSave.nombre_categoria;
 
                     console.log('DATOS LISTOS PARA EL BULK INSERT:', productDataToSave);
@@ -1018,9 +971,9 @@ export class AdminProductManager {
                 } else {
                     failedRecords.push({
                         ...record,
-                        error: `Categoría "${record.nombre_categoria}" no encontrada o inválida.`
+                        error: `No se encontró 'id_categoria' válido ni 'nombre_categoria' coincidente. (Valor actual: ${record.id_categoria || record.nombre_categoria || 'N/A'})`
                     });
-                    console.warn('REGISTRO FALLIDO (Categoría no encontrada):', record);
+                    console.warn('REGISTRO FALLIDO (Falta ID o Categoría no encontrada):', record);
                 }
             }
 

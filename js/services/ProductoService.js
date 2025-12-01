@@ -51,7 +51,8 @@ export const ProductoService = {
         let query = supabase.from(TABLE_NAME)
             .select(CORRECT_SELECT_QUERY)
             .eq('visible', true)
-            .order(CONFIG.id_key, { ascending: true });
+            .order(CONFIG.id_key, { ascending: true })
+            .limit(5000); // ⬅️ SOLUCIÓN: Agregamos el límite para superar la restricción de 1000
 
         const { data, error } = await query;
 

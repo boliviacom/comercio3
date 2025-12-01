@@ -1,44 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio de Sesión Administrador</title>
-    <link rel="stylesheet" href="css/inicio_sesion.css">
+    <title>Acceso de Empleados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#80CC28', // Color primario
+                        'primary-blue-dark': '#17542A', // Color secundario (oscuro)
+                        'secondary-gray': '#e5e7eb',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
 </head>
 
-<body>
-    <section>
-        <div id="auth-view">
-            <h1>
-                Vegan Products
-            </h1>
-            <p>Iniciar Sesión para la Administración</p>
+<body class="bg-secondary-gray min-h-screen flex items-center justify-center p-4 font-sans">
 
-            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label for="login-email">Correo Electrónico</label>
-                    <input type="email" id="login-email" required>
-                </div>
-                <label for="password" class="label">Contraseña:</label>
-                <div style="position: relative;">
-                    <input type="password" id="password" class="input" required>
-                    <span onclick="togglePassword()"
-                        style="position: absolute; right: 10px; top: 40%; transform: translateY(-50%); cursor: pointer; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;">
-                        <img id="eye-open" src="imagenes/ojo_abierto.png" alt="ojo abierto"
-                            style="max-width: 100%; max-height: 100%; display: block;">
-                        <img id="eye-closed" src="imagenes/ojo_cerrado.png" alt="ojo cerrado"
-                            style="max-width: 100%; max-height: 100%; display: none;">
-                    </span>
-                </div>
+    <div
+        class="w-full max-w-sm bg-white p-8 rounded-xl shadow-2xl transition-all duration-300 hover:shadow-primary-blue/30">
 
-                <button type="submit" class="btn-primary">
-                    Ingresar
-                </button>
-            </form>
+        <div class="text-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary-blue mx-auto mb-3" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h1 class="text-3xl font-bold text-gray-800">Acceso de Empleados</h1>
+            <p class="text-gray-500 text-sm mt-1">Ingresa tus credenciales para continuar</p>
         </div>
-    </section>
+
+        <form id="loginForm">
+
+            <div class="mb-8 relative">
+
+                <input type="text" id="login-email" name="username" placeholder=" " required
+                    class="input-field peer w-full pl-10 pr-4 pt-6 pb-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-primary-blue focus:border-primary-blue focus:outline-none">
+
+                <label for="login-email"
+                    class="label-float absolute left-10 top-4 text-gray-500 text-base transition-all duration-200 pointer-events-none 
+                        peer-focus:top-1.5 peer-focus:text-xs peer-focus:font-medium peer-focus:text-primary-blue bg-white px-1
+                        peer-not-placeholder-shown:top-1.5 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:font-medium peer-not-placeholder-shown:text-gray-600 bg-white px-1">
+                    Nombre de Usuario
+                </label>
+
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="absolute left-3 top-4 h-5 w-5 text-gray-400 transition-colors duration-200 peer-focus:text-primary-blue pointer-events-none"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </div>
+
+            <div class="mb-8 relative">
+
+                <input type="password" id="password" name="password" placeholder=" " required
+                    class="input-field peer w-full pl-10 pr-12 pt-6 pb-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-primary-blue focus:border-primary-blue focus:outline-none">
+
+                <label for="password"
+                    class="label-float absolute left-10 top-4 text-gray-500 text-base transition-all duration-200 pointer-events-none 
+                        peer-focus:top-1.5 peer-focus:text-xs peer-focus:font-medium peer-focus:text-primary-blue bg-white px-1
+                        peer-not-placeholder-shown:top-1.5 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:font-medium peer-not-placeholder-shown:text-gray-600 bg-white px-1">
+                    Contraseña
+                </label>
+
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="absolute left-3 top-4 h-5 w-5 text-gray-400 transition-colors duration-200 peer-focus:text-primary-blue pointer-events-none"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15 9V5a3 3 0 00-3-3a3 3 0 00-3 3v4m5 10H7a2 2 0 01-2-2v-6a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2z" />
+                </svg>
+
+                <button type="button" id="togglePassword"
+                    class="absolute right-3 top-4 text-gray-500 hover:text-primary-blue focus:outline-none transition-colors duration-200 p-0.5">
+                    <span id="eye-closed">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.082-2.339m1.446-2.072A11.968 11.968 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.05 10.05 0 01-2.45 4.775m-1.742-1.895l-3.376-3.376-1.554-1.554L7.5 12l2.646 2.646" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19v2m0-18V3m-7 8H2m18 0h-3" />
+                        </svg>
+                    </span>
+                    <span id="eye-open" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </span>
+                </button>
+
+            </div>
+
+            <div id="messageContainer" class="hidden p-3 mb-4 rounded-lg text-sm transition-all duration-300"
+                role="alert">
+                <p id="messageText"></p>
+            </div>
+
+            <button type="submit"
+                class="btn-primary w-full bg-primary-blue text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg hover:shadow-primary-blue/50 focus:outline-none focus:ring-4 focus:ring-primary-blue/50">
+                Iniciar Sesión
+            </button>
+        </form>
+
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script type="module" src="js/authManager.js"></script>
     <script type="module" src="js/main.js"></script>
